@@ -54,7 +54,6 @@ jobs:
           java -version
           flutter --version
           flet --version
-          sdkmanager --list | head -n 40
 
       - name: Build APK
         run: |
