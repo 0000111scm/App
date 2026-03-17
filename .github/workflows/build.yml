@@ -1,45 +1,63 @@
 name: Build APK S24FE
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.4'
-          channel: 'stable'
+          flutter-version: "3.27.4"
+          channel: "stable"
           cache: true
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses
+
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Show tool versions
+        run: |
+          python -V
+          pip --version
+          java -version
+          flutter --version
+          flet --version
 
       - name: Build APK
         run: |
-          flet build apk --org com.sandros24fe.optimizer --product "Optimizer S24FE" --verbose
+          flet build apk --yes --verbose --clear-cache --org com.sandros24fe.optimizer --product "Optimizer S24FE"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Optimizer-S24FE
           path: build/apk/*.apk
+          if-no-files-found: error
