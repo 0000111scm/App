@@ -1,6 +1,7 @@
 import flet as ft
 import os
 import threading
+import flet_permission_handler as fph
 
 def main(page: ft.Page):
     page.title = "Optimizer S24 FE"
@@ -9,11 +10,14 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.padding = 20
-    page.window_prevent_close = True
+
+    ph = fph.PermissionHandler()
+    page.overlay.append(ph)
 
     icone = ft.Icon(ft.icons.SPEED, color="#0a84ff", size=80)
     titulo = ft.Text("OTIMIZADOR S24 FE", size=28, weight="bold", color="#ffffff")
     status_text = ft.Text("STATUS: AGUARDANDO", color="#555555", size=14)
+
     btn_executar = ft.ElevatedButton(
         "EXECUTAR OTIMIZAÇÃO",
         style=ft.ButtonStyle(
@@ -23,10 +27,8 @@ def main(page: ft.Page):
             shape=ft.RoundedRectangleBorder(radius=10)
         )
     )
-    btn_perm = ft.TextButton(
-        "CONFIGURAR PERMISSÕES",
-        on_click=lambda e: page.request_permission(ft.PermissionType.MANAGE_EXTERNAL_STORAGE)
-    )
+
+    btn_perm = ft.TextButton("CONFIGURAR PERMISSÕES")
 
     page.add(
         ft.Column([
@@ -51,7 +53,10 @@ def main(page: ft.Page):
     def tarefa_otimizacao():
         atualizar_status("VARRENDO ARQUIVOS...", "#0a84ff")
         extensoes = ['.tmp', '.log', '.cache', '.temp', '.thumb', '.bak', '.old']
-        base_paths = ["/storage/emulated/0/"]
+        base_paths = [
+            "/storage/emulated/0/",
+            "/sdcard/Android/data/",
+        ]
         total_liberto = 0
         arquivos_removidos = 0
 
@@ -60,8 +65,6 @@ def main(page: ft.Page):
                 continue
             try:
                 for root, dirs, files in os.walk(base):
-                    if any(p in root for p in ["/Android/data/", "/Android/obb/", "/."]):
-                        continue
                     for file in files:
                         if any(file.lower().endswith(ext) for ext in extensoes):
                             caminho = os.path.join(root, file)
@@ -80,6 +83,7 @@ def main(page: ft.Page):
             atualizar_status(f"LIBERTADO: {mb:.2f} MB ({arquivos_removidos} ARQUIVOS)", "#30d158")
         else:
             atualizar_status("NENHUM ARQUIVO ENCONTRADO", "#ff9f0a")
+
         btn_executar.disabled = False
         page.update()
 
@@ -88,13 +92,14 @@ def main(page: ft.Page):
         page.update()
         threading.Thread(target=tarefa_otimizacao, daemon=True).start()
 
-    btn_executar.on_click = executar_click
-
-    def on_perm_result(e):
-        if e.granted:
+    def configurar_permissoes(e):
+        result = ph.request_permission(fph.PermissionType.MANAGE_EXTERNAL_STORAGE)
+        if result == fph.PermissionStatus.GRANTED:
             atualizar_status("PERMISSÃO CONCEDIDA", "#30d158")
         else:
-            atualizar_status("PERMISSÃO NEGADA", "#ff453a")
-    page.on_permission_result = on_perm_result
+            atualizar_status("PERMISSÃO NEGADA — VÁ EM CONFIGURAÇÕES", "#ff453a")
+
+    btn_executar.on_click = executar_click
+    btn_perm.on_click = configurar_permissoes
 
 ft.app(target=main)
