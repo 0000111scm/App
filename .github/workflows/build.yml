@@ -17,10 +17,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install flet==0.21.1
+          pip install -r requirements.txt
       - name: Build APK
         run: |
-          flet build apk --org com.sandros24fe.optimizer --build-name "1.0.0" --build-number 1 --verbose
+          flet build apk --org com.sandros24fe.optimizer --product "Optimizer S24FE" --verbose
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
